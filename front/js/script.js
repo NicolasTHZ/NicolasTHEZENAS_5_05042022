@@ -5,7 +5,7 @@ creationProducts();
 
 async function getProducts() {
     let products = await fetch('http://localhost:3000/api/products');
-    console.log("Les produits ont été récupérés !")
+    console.log("Success")
     return products.json();
 }
 
@@ -42,5 +42,5 @@ async function creationProducts() {
             productDescription.innerHTML = product[i].description;
         }
     });
-    console.log("Les produits ont été crées !");
+    console.log("Success");
 }
