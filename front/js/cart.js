@@ -1,29 +1,104 @@
 let productLocalStorage = JSON.parse(localStorage.getItem("cart"));
-let productId = [];
-let product;
-
 console.log(productLocalStorage);
 
+//import all product Identification into an array
+let productId = [];
 for (let i = 0; i < productLocalStorage.length; i++) {
     productId[i] = productLocalStorage[i].idKanap;
 }
 console.log(productId);
 
+//fetching all products
+let fetchProduct = async () => {
+    return fetch("http://localhost:3000/api/products/") // <-- Added return
+      .then(response => {
+        return response.json();
+      })
+      .then((promise) => {console.log(promise); return promise;})
+}
 
-for (let i = 0; i < productId.length; i++) {
-    fetch('http://localhost:3000/api/products/' + productId[i])
-    .then(response => {
-        if (response.ok) {
-            return response.json();
+let fetchId = async (id) => {
+    return fetch("http://localhost:3000/api/products/" + id) // <-- Added return
+      .then(response => {
+        return response.json();
+      })
+      .then((promise) => {console.log(promise); return promise;})
+}
+
+//fetch product object currently in the cart into productList
+let productList = async () => {
+    let promise = await fetchProduct();
+    console.log(promise);
+    let productList = {};
+    for(let i = 0; i < promise.length; i++) {
+        if(productId[i] === promise[i._id]) {
+            productList[i] = promise[i];
         }
-    throw new Error('Request failed!');
-    }), networkError => console.log(networkError.message)
-    .then(data => product = data)
-    .then(console.log(product));
+    }
+    console.log(productList);
+    return productList;
+}
+
+productList();
+
+//fetch product object currently in the cart into productList
+
+
+fetchProduct();
+// const fetchProduct = async () => {
+//     await fetch("http://localhost:3000/api/products/")
+//     .then((res) => res.json())
+//     .then((promise) => {
+//         product = promise;
+//         console.log(product)
+//     });
+// };
+
+
+
+
+
+
+// for (let i = 0; i < productId.length; i++) {
+//     fetch('http://localhost:3000/api/products/' + productId[i])
+//     .then(response => {
+//         if (response.ok) {
+//             return response.json();
+//         }
+//     throw new Error('Request failed!');
+//     }), networkError => console.log(networkError.message)
+//     .then((promise) => {product = promise});
+// }
+async function getTotals(){
+
+    // Récupération du total des quantités
+    var elemsQtt = document.getElementsByClassName('itemQuantity');
+    var myLength = elemsQtt.length,
+    totalQtt = 0;
+
+    for (var i = 0; i < myLength; ++i) {
+        totalQtt += elemsQtt[i].valueAsNumber;
+    }
+    
+    let productTotalQuantity = document.getElementById('totalQuantity');
+    productTotalQuantity.innerHTML = totalQtt;
+
+    // Récupération du prix total
+    
+    totalPrice = 0;
+    for (var i = 0; i < myLength; ++i) {
+        let prod = await fetchId(productLocalStorage[i].idKanap);
+        console.log(prod);
+        totalPrice += (elemsQtt[i].valueAsNumber * prod.price);
+    }
+
+    let productTotalPrice = document.getElementById('totalPrice');
+    productTotalPrice.innerHTML = totalPrice;
 }
 
 
 
+async function displayCart (){
 if (!productLocalStorage) {
 
     const titleCart = document.querySelector("h1");
@@ -36,15 +111,19 @@ if (!productLocalStorage) {
 
     for (let i=0; i < productLocalStorage.length; i++) {
         let item = productLocalStorage[i];
-        document.getElementById('cart__items').innerHTML += `<article class="cart__item" data-id="${productLocalStorage[i].idKanap}" data-color="${productLocalStorage[i].colorKanap}">
+        let pr = await productList();
+        console.log(pr);
+        let prod = await fetchId(productLocalStorage[i].idKanap);
+        console.log(prod);
+        document.getElementById('cart__items').innerHTML += `<article class="cart__item" data-id="${productId[i]}" data-color="${productLocalStorage[i].colorKanap}">
             <div class="cart__item__img">
-            <img src="${productLocalStorage[i].imgKanap}" alt="Photographie d'un canapé">
+            <img src="${prod.imageUrl}" alt="${prod.altTxtl}">
             </div>
             <div class="cart__item__content">
             <div class="cart__item__content__description">
-                <h2>${productLocalStorage[i].nameKanap}</h2>
+                <h2>${prod.name}</h2>
                 <p>${productLocalStorage[i].colorKanap}</p>
-                <p>${productLocalStorage[i].priceKanap}€</p>
+                <p>${prod.price}€</p>
             </div>
             <div class="cart__item__content__settings">
                 <div class="cart__item__content__settings__quantity">
@@ -57,6 +136,7 @@ if (!productLocalStorage) {
             </div>
             </div>
         </article>`;
+        
 
         // let article = e.element.nearest('article');
 
@@ -164,32 +244,16 @@ if (!productLocalStorage) {
         //     location.reload();
         // });
     }
+    getTotals();
+    modifyQtt();
+    deleteArticle();
+}
 }
 
-function getTotals(){
+displayCart();
 
-    // Récupération du total des quantités
-    var elemsQtt = document.getElementsByClassName('itemQuantity');
-    var myLength = elemsQtt.length,
-    totalQtt = 0;
 
-    for (var i = 0; i < myLength; ++i) {
-        totalQtt += elemsQtt[i].valueAsNumber;
-    }
-    
-    let productTotalQuantity = document.getElementById('totalQuantity');
-    productTotalQuantity.innerHTML = totalQtt;
 
-    // Récupération du prix total
-    totalPrice = 0;
-    for (var i = 0; i < myLength; ++i) {
-        totalPrice += (elemsQtt[i].valueAsNumber * productLocalStorage[i].priceKanap);
-    }
-
-    let productTotalPrice = document.getElementById('totalPrice');
-    productTotalPrice.innerHTML = totalPrice;
-}
-getTotals();
 
 
 function modifyQtt() {
@@ -214,7 +278,6 @@ function modifyQtt() {
         })
     }
 }
-modifyQtt();
 
 
 function deleteArticle() {
@@ -227,14 +290,23 @@ function deleteArticle() {
 
             let article = event.target.closest("article");
             article.remove();
-
+            let idFindIndex = article.getAttribute("data-id");
+            let colorFindIndex = article.getAttribute("data-color");
+            console.log(idFindIndex);
             console.log("Id : " + article.getAttribute("data-id"));
 
+            // filtrer l'élément cliqué par le bouton supprimer
+            productLocalStorage = productLocalStorage.filter( elt => elt.idKanap !== idFindIndex || elt.colorKanap !== colorFindIndex);
+
+            // envoyer les nouvelles données dans le localStorage
+            localStorage.setItem('cart', JSON.stringify(productLocalStorage));   
+
             console.log("Color : " + article.getAttribute("data-color"));
+            getTotals();
         }) 
     }
 }
-deleteArticle();
+
 
 //Instauration formulaire avec regex
 function getForm() {
